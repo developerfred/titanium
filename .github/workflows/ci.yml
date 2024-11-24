@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_VERSION: nightly-2024-03-20  # Updated to a newer nightly that includes rustc 1.79.0
 
 jobs:
   test:
@@ -29,9 +30,13 @@ jobs:
             cmake
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: nightly-2024-03-20
           components: rustfmt, clippy
+      
+      - name: Show Rust version
+        run: rustc --version
       
       - name: Cache dependencies
         uses: actions/cache@v3
@@ -70,6 +75,12 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev \
             cmake
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2024-03-20
+          components: rustfmt, clippy
       
       - name: Build
         run: cargo build --release
