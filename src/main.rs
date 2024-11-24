@@ -26,7 +26,7 @@ fn validate_url(url_str: &str) -> Result<Url, String> {
     Url::parse(url_str).map_err(|_| "Invalid URL".to_string())
 }
 
-async fn render_html(url: &Url, _width: u32, _height: u32) -> Result<Vec<u8>, String> {    
+async fn render_html(url: &Url, _width: u32, _height: u32) -> Result<Vec<u8>, String> {
     let html_content = reqwest::blocking::get(url.as_str())
         .and_then(|response| response.text())
         .map_err(|e| format!("Failed to fetch URL: {}", e))?;
@@ -36,8 +36,8 @@ async fn render_html(url: &Url, _width: u32, _height: u32) -> Result<Vec<u8>, St
         base_url: Some(url.to_string()),
     };
 
-    tokio::task::spawn_blocking(move || {        
-        dioxus_native::launch_static_html_cfg(&html_content, config);                        
+    tokio::task::spawn_blocking(move || {
+        dioxus_native::launch_static_html_cfg(&html_content, config);
         Ok(Vec::new())
     })
     .await
@@ -73,7 +73,7 @@ async fn health_check() -> impl IntoResponse {
 }
 
 #[tokio::main]
-async fn main() { 
+async fn main() {
     tracing_subscriber::fmt()
         .with_target(false)
         .with_level(true)
