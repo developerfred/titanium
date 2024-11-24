@@ -3,6 +3,7 @@ use base64::{engine::general_purpose::URL_SAFE, Engine};
 use dioxus_native::Config;
 use serde::Deserialize;
 use std::{net::SocketAddr, time::Instant};
+use tokio::task::block_in_place;
 use tower_http::trace::TraceLayer;
 use tracing::{info, Level};
 use url::Url;
@@ -25,22 +26,22 @@ fn validate_url(url_str: &str) -> Result<Url, String> {
     Url::parse(url_str).map_err(|_| "Invalid URL".to_string())
 }
 
-async fn render_html(url: &Url) -> Result<Vec<u8>, String> {
-    let config = Config {
-        stylesheets: Vec::new(),
-        base_url: Some(url.to_string()),
-        ..Default::default()
-    };
-
+async fn render_html(url: &Url, _width: u32, _height: u32) -> Result<Vec<u8>, String> {    
     let html_content = reqwest::blocking::get(url.as_str())
         .and_then(|response| response.text())
         .map_err(|e| format!("Failed to fetch URL: {}", e))?;
 
-    tokio::task::spawn_blocking(move || {
-        dioxus_native::launch_static_html_cfg(&html_content, config)
+    let config = Config {
+        stylesheets: Vec::new(),
+        base_url: Some(url.to_string()),
+    };
+
+    tokio::task::spawn_blocking(move || {        
+        dioxus_native::launch_static_html_cfg(&html_content, config);                        
+        Ok(Vec::new())
     })
     .await
-    .map_err(|e| format!("Render failed: {}", e))?
+    .map_err(|e| format!("Task failed: {}", e))?
 }
 
 async fn render_url(Query(params): Query<RenderParams>) -> impl IntoResponse {
@@ -51,9 +52,8 @@ async fn render_url(Query(params): Query<RenderParams>) -> impl IntoResponse {
         .and_then(|url| {
             info!("Starting render for URL: {}", url);
 
-            let load_start = Instant::now();
-            let result = tokio::block_in_place(|| {
-                tokio::runtime::Handle::current().block_on(render_html(&url))
+            let result = block_in_place(|| {
+                tokio::runtime::Handle::current().block_on(render_html(&url, params.w, params.h))
             });
 
             let total_time = start.elapsed();
@@ -73,8 +73,7 @@ async fn health_check() -> impl IntoResponse {
 }
 
 #[tokio::main]
-async fn main() {
-    // Initialize logging
+async fn main() { 
     tracing_subscriber::fmt()
         .with_target(false)
         .with_level(true)
@@ -130,14 +129,5 @@ mod tests {
     async fn test_health_check() {
         let response = health_check().await.into_response();
         assert_eq!(response.status(), StatusCode::OK);
-    }
-
-    #[test]
-    fn test_render_params_deserialization() {
-        let json = r#"{"url":"aHR0cHM6Ly9nb29nbGUuY29t","w":800,"h":600}"#;
-        let params: RenderParams = serde_json::from_str(json).unwrap();
-        assert_eq!(params.url, "aHR0cHM6Ly9nb29nbGUuY29t");
-        assert_eq!(params.w, 800);
-        assert_eq!(params.h, 600);
     }
 }

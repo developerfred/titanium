@@ -1,0 +1,8 @@
+[build]
+rustflags = ["--cfg", "procmacro2_semver_exempt"]
+
+[target.'cfg(all())']
+rustflags = ["--cfg", "procmacro2_semver_exempt"]
+
+[unstable]
+proc-macro = true
