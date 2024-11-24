@@ -1,7 +1,7 @@
-use axum::http::{StatusCode, Request};
-use tower::ServiceExt;
+use axum::http::{Request, StatusCode};
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use std::str::from_utf8;
+use tower::ServiceExt;
 
 #[tokio::test]
 async fn test_health_endpoint() {
@@ -18,9 +18,9 @@ async fn test_health_endpoint() {
 #[tokio::test]
 async fn test_render_endpoint_invalid_url() {
     let app = url_to_png_service::create_app();
-    
+
     let invalid_url = "not_valid_base64";
-    
+
     let response = app
         .oneshot(
             Request::builder()
@@ -37,10 +37,10 @@ async fn test_render_endpoint_invalid_url() {
 #[tokio::test]
 async fn test_render_endpoint_valid_url() {
     let app = url_to_png_service::create_app();
-    
+
     let url = "https://example.com";
     let encoded_url = URL_SAFE.encode(url.as_bytes());
-    
+
     let response = app
         .oneshot(
             Request::builder()

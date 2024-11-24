@@ -1,10 +1,4 @@
-use axum::{
-    extract::Query,
-    http::StatusCode,
-    response::IntoResponse,
-    routing::get,
-    Router,
-};
+use axum::{extract::Query, http::StatusCode, response::IntoResponse, routing::get, Router};
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use dioxus_native::Config;
 use serde::Deserialize;
@@ -20,20 +14,16 @@ struct RenderParams {
     h: u32,
 }
 
-
 fn decode_base64_url(encoded: &str) -> Result<String, String> {
-    URL_SAFE.decode(encoded)
+    URL_SAFE
+        .decode(encoded)
         .map_err(|_| "Invalid base64".to_string())
-        .and_then(|bytes| String::from_utf8(bytes)
-            .map_err(|_| "Invalid URL encoding".to_string()))
+        .and_then(|bytes| String::from_utf8(bytes).map_err(|_| "Invalid URL encoding".to_string()))
 }
-
 
 fn validate_url(url_str: &str) -> Result<Url, String> {
-    Url::parse(url_str)
-        .map_err(|_| "Invalid URL".to_string())
+    Url::parse(url_str).map_err(|_| "Invalid URL".to_string())
 }
-
 
 async fn render_html(url: &Url) -> Result<Vec<u8>, String> {
     let config = Config {
@@ -55,21 +45,20 @@ async fn render_html(url: &Url) -> Result<Vec<u8>, String> {
 
 async fn render_url(Query(params): Query<RenderParams>) -> impl IntoResponse {
     let start = Instant::now();
-    
-    
+
     let result = decode_base64_url(&params.url)
         .and_then(|decoded| validate_url(&decoded))
         .and_then(|url| {
             info!("Starting render for URL: {}", url);
-            
+
             let load_start = Instant::now();
             let result = tokio::block_in_place(|| {
                 tokio::runtime::Handle::current().block_on(render_html(&url))
             });
-            
+
             let total_time = start.elapsed();
             info!("Render completed - Total time: {:?}", total_time);
-            
+
             result
         });
 
@@ -98,7 +87,7 @@ async fn main() {
         .layer(TraceLayer::new_for_http());
 
     info!("Starting server on port 3000");
-    
+
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -110,7 +99,7 @@ mod tests {
 
     #[test]
     fn test_decode_base64_url_valid() {
-        let encoded = "aHR0cHM6Ly9nb29nbGUuY29t"; 
+        let encoded = "aHR0cHM6Ly9nb29nbGUuY29t";
         let result = decode_base64_url(encoded);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "https://google.com");
