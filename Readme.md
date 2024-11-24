@@ -31,7 +31,7 @@ Before running the service, ensure you have the following installed:
 ### Using Docker
 
 ```bash
-docker-compose up app
+docker-compose up -d
 ```
 
 ### Manual Installation
