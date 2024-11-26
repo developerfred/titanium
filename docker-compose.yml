@@ -1,10 +1,15 @@
 services:
   app:
-    build: .
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME:developerfred/titanium}:${TAG:-latest}
+    build: 
+      context: .
+      args:
+        RUST_LOG: ${RUST_LOG:-info}
     ports:
       - "3000:3000"
     environment:
-      - RUST_LOG=info
+      - RUST_LOG=${RUST_LOG:-info}
+      - RUST_BACKTRACE=1
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
