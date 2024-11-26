@@ -20,7 +20,7 @@ COPY Cargo.toml Cargo.lock* ./
 
 
 RUN mkdir src && \
-    echo "fn main() {}" > src/main.rs && \
+    echo "fn main() { println!(\"Initializing build...\"); }" > src/main.rs && \
     cargo build --release && \
     cargo build --tests && \
     rm -rf src
@@ -29,7 +29,11 @@ RUN mkdir src && \
 COPY src src/
 
 
-RUN cargo build --release && \
+ARG RUST_LOG=info
+ENV RUST_LOG=${RUST_LOG}
+
+RUN echo "Building application with RUST_LOG=${RUST_LOG}" && \
+    cargo build --release && \
     cargo test --no-run
 
 
@@ -54,6 +58,18 @@ RUN apt-get update && \
 
 COPY --from=builder /usr/src/app/target/release/titanium /usr/local/bin/
 
+
+ENV RUST_LOG=info
+
+
+COPY <<'EOF' /usr/local/bin/start.sh
+#!/bin/bash
+echo "Starting Titanium server with RUST_LOG=${RUST_LOG}"
+exec titanium
+EOF
+
+RUN chmod +x /usr/local/bin/start.sh
+
 EXPOSE 3000
 
-CMD ["titanium"]
+CMD ["/usr/local/bin/start.sh"]
