@@ -1,4 +1,11 @@
+# Builder stage
 FROM rustlang/rust:nightly AS builder
+
+
+ENV CARGO_HOME=/usr/local/cargo
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV PATH=/usr/local/cargo/bin:$PATH
+ENV RUST_LOG=info
 
 
 RUN apt-get update && \
@@ -16,29 +23,28 @@ RUN apt-get update && \
     libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
 
 COPY Cargo.toml Cargo.lock* ./
 
 
 RUN mkdir src && \
-    echo "fn main() { println!(\"Initializing build...\"); }" > src/main.rs && \
+    echo 'fn main() { println!("dummy") }' > src/main.rs && \
     cargo build --release && \
     cargo build --tests && \
-    rm -rf src
+    rm -rf src target/release/deps/titanium*
 
 
 COPY src src/
 COPY rust-toolchain.toml .
 
 
-ARG RUST_LOG=info
-ENV RUST_LOG=${RUST_LOG}
-
-RUN echo "Building with RUST_LOG=${RUST_LOG}" && \
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
     cargo build --release && \
-    cargo test --no-run
+    cargo test --no-run && \
+    cp target/release/titanium /app/titanium
 
 
 FROM debian:bookworm-slim
@@ -60,7 +66,7 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 
-COPY --from=builder /usr/src/app/target/release/titanium /usr/local/bin/
+COPY --from=builder /app/titanium /usr/local/bin/titanium
 
 
 ENV RUST_LOG=info
