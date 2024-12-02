@@ -8,6 +8,7 @@ ENV RUST_LOG=debug
 ENV RUST_BACKTRACE=full
 ENV RUST_LIB_BACKTRACE=1
 
+# Install system dependencies
 RUN apt-get update && \
     apt-get install -y \
     pkg-config \
@@ -28,23 +29,29 @@ WORKDIR /app
 # Create logs directory
 RUN mkdir -p /app/logs
 
+# Copy manifests
 COPY Cargo.toml Cargo.lock* ./
 
+# Cache dependencies
 RUN mkdir src && \
     echo 'fn main() { println!("dummy") }' > src/main.rs && \
-    cargo build --release && \
+    CARGO_NET_GIT_FETCH_WITH_CLI=true cargo fetch
+
+# Build dependencies
+RUN cargo build --release && \
     cargo build --tests && \
     rm -rf src target/release/deps/titanium*
 
+# Copy source code
 COPY src src/
 COPY rust-toolchain.toml .
 
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/app/target \
-    cargo build --release && \
-    cargo test --no-run && \
+# Build application
+RUN CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --release && \
+    CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --no-run && \
     cp target/release/titanium /app/titanium
 
+# Runtime stage
 FROM debian:bookworm-slim
 
 RUN apt-get update && \
