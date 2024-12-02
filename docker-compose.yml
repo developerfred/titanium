@@ -1,16 +1,39 @@
 services:
   app:
-    build: .
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_NAME:-developerfred/titanium}:${TAG:-latest}
+    build: 
+      context: .
+      args:
+        RUST_LOG: ${RUST_LOG:-debug}
     ports:
       - "3000:3000"
     environment:
-      - RUST_LOG=info
+      - RUST_LOG=${RUST_LOG:-debug}
+      - RUST_BACKTRACE=full
+      - RUST_LIB_BACKTRACE=1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        compress: "true"
+        mode: "non-blocking"
+        tag: "{{.Name}}"
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    volumes:
+      - ./logs:/app/logs
 
   test:
     build:
@@ -19,11 +42,23 @@ services:
     command: cargo test --all-features -- --nocapture
     environment:
       - RUST_LOG=debug
-      - RUST_BACKTRACE=1
+      - RUST_BACKTRACE=full
+      - RUST_LIB_BACKTRACE=1
     volumes:
       - .:/usr/src/app
       - cargo-cache:/usr/local/cargo/registry
+      - ./logs:/app/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+        compress: "true"
+        mode: "non-blocking"
+        tag: "{{.Name}}"
     profiles: ["test"]
 
 volumes:
   cargo-cache: {}
+  logs:
+    driver: local
