@@ -1,6 +1,5 @@
 FROM rustlang/rust:nightly AS builder
 
-
 RUN apt-get update && \
     apt-get install -y \
         pkg-config \
@@ -15,19 +14,9 @@ RUN apt-get update && \
 
 WORKDIR /usr/src/app
 
-
 COPY Cargo.toml Cargo.lock* ./
 
-
-RUN mkdir src && \
-    echo "fn main() { println!(\"Initializing build...\"); }" > src/main.rs && \
-    cargo build --release && \
-    cargo build --tests && \
-    rm -rf src
-
-
 COPY src src/
-
 
 ARG RUST_LOG=info
 ENV RUST_LOG=${RUST_LOG}
@@ -36,12 +25,11 @@ RUN echo "Building application with RUST_LOG=${RUST_LOG}" && \
     cargo build --release && \
     cargo test --no-run
 
-
 FROM debian:bookworm-slim
-
 
 RUN apt-get update && \
     apt-get install -y \
+        bash \
         ca-certificates \
         libwebkit2gtk-4.0-37 \
         libjavascriptcoregtk-4.0-18 \
@@ -55,12 +43,9 @@ RUN apt-get update && \
         libxdo3 && \
     rm -rf /var/lib/apt/lists/*
 
-
 COPY --from=builder /usr/src/app/target/release/titanium /usr/local/bin/
 
-
 ENV RUST_LOG=info
-
 
 COPY <<'EOF' /usr/local/bin/start.sh
 #!/bin/bash
